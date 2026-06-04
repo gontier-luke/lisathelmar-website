@@ -1,0 +1,10 @@
+.env
+docker-compose.yml
+var/lib/
+var/node_modules/
+var/cache
+.docker/
+verifCaptcha/
+DarkestDungeon/
+private/
+node_modules/
