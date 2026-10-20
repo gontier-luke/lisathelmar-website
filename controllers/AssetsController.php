@@ -62,16 +62,15 @@ class AssetsController extends ControllerOverride
         return true;
     }
 
-    # [Route('/build/{path}', 'app_media_build')]
-    public function build(string $path): bool
+    # [Route('/ressources/{path}.{extension}', 'app_media_build')]
+    public function build(string $path, string $extension): bool
     {
-        $file = BASE_PATH . 'build/' . $path;
+        $file = BASE_PATH . 'build/' . $path . '.' . $extension;
         $this->setTitle('Build Asset : ' . $path);
         if(!file_exists($file)) {
             dd('File not found: ' . $file);
             return false;
         }
-        $extension = pathinfo($file, PATHINFO_EXTENSION);
         switch (strtolower($extension)) {
             case 'css':
                 header('Content-Type: text/css');
@@ -88,6 +87,9 @@ class AssetsController extends ControllerOverride
                 break;
             case 'svg':
                 header('Content-Type: image/svg+xml');
+                break;
+            case 'pdf':
+                header('Content-Type: application/pdf');
                 break;
             default:
                 dd('Unsupported build asset extension: ' . $extension);
@@ -133,6 +135,20 @@ class AssetsController extends ControllerOverride
         }
         header('Content-Type: ' . $contentType);
         header("Accept-Ranges: bytes");
+        echo $content;
+        return true;
+    }
+
+    # [Route('/media/font/{fontName}', 'app_media_font')]
+    public function font(string $fontName): bool
+    {
+        $file = $fontName;
+        $this->setTitle('Font : ' . $file);
+        $content = AssetsService::getFontContent($fontName);
+        if($content === null) {
+            return false;
+        }
+        header('Content-Type: font/woff2');
         echo $content;
         return true;
     }

@@ -1,15 +1,16 @@
 <div class="footer-content">
     <div class="top">
+        <span class="footer-content__copyright text-center">© 2026 Lisa Thelmar - produit par Infelix Commentator</span>
     </div>
     <div class="bottom">
-        <ul class="footer-content__pages flex flex-row container justify-content-center align-items-center">
+        <ul class="footer-content__pages justify-center pl-0">
             <?php foreach ($footerLinks as $name => $link) { ?>
                 <li class="pages-btn">
                     <a href="<?= $link ?>"><?= $name ?></a>
                 </li>
             <?php } ?>
         </ul>
-        <ul class="footer-content__socials flex flex-row container justify-content-center align-items-center">
+        <ul class="footer-content__socials justify-center">
             <?php
             $copySocial = false;
             foreach ($socials as $social) { ?>
@@ -17,13 +18,33 @@
                     <?php switch($social['type']) {
                         case 'url': ?>
                             <a href="<?= $social['link'] ?>" target="_blank">
-                                <img src="<?= $siteRoot . $social['icon'] ?>" alt="<?= $social['title'] ?>">
+                                <?php if($social['icon'] !== null) { 
+                                    switch($social['iconExtension']) {
+                                        case 'svg': ?>
+                                            <?= $social['icon'] ?>
+                                        <?php break;
+                                        default: ?>
+                                            <img src="<?= $social['icon'] ?>" alt="<?= $social['title'] ?>">
+                                        <?php break;
+                                    } ?>
+                                <?php } ?>
                             </a>
                             <?php break;
                         case 'copy': 
-                            $copySocial = true; ?>
-                            <img src="<?= $siteRoot . $social['icon'] ?>" alt="<?= $social['title'] ?>" class="copy-js" data-copy="<?= $social['link']?>" data-message="<?= $social['copy_message']?>">
-                            <?php break;
+                            $copySocial = true; 
+                            if($social['icon'] !== null) { 
+                                switch($social['iconExtension']) {
+                                    case 'svg': ?>
+                                        <span class="copy-js" data-copy="<?= $social['link'] ?>" data-message="<?= $social['copy_message'] ?>">
+                                            <?= $social['icon'] ?>
+                                        </span>
+                                    <?php break;
+                                    default: ?>
+                                        <img src="<?= $social['icon'] ?>" alt="<?= $social['title'] ?>" class="copy-js" data-copy="<?= $social['link'] ?>" data-message="<?= $social['copy_message'] ?>">
+                                    <?php break;
+                                } 
+                            } 
+                            break;
                     } ?>
                 </li>
             <?php } ?>

@@ -11,22 +11,46 @@ class ControllerCore{
     protected array $stylesheets = [];
     protected array $scripts = [];
     protected string $title = 'Infelix Commentator - base';
+    protected array $extraVariables = [];
 
-    public static function getInstanceByName(string $name) : ?ControllerCore {
-        $controllerPath = BASE_PATH . '/controllers/' . ucfirst($name) . 'Controller.php';
+    public static function getInstanceByName(string $name, bool $isAdmin = false) : ?ControllerCore {
+        
+        $controllerPathes['base'] = BASE_PATH . '/controllers/';
+        foreach(getAllActiveModules() as $module) {
+            $moduleName = $module->getName();
+            $moduleControllersPath = BASE_PATH . 'modules/' . $moduleName . '/controllers/';
+            if(file_exists(BASE_PATH . 'modules/' . $moduleName . '/controllers/')) {
+                $controllerPathes[$moduleName] = $moduleControllersPath;
+            }
+
+        }
+        $controllerPath = $controllerPathes['base'];
         if (!file_exists($controllerPath)) {
             return null;
         }
-        $className =  ucfirst($name) .'Controller';
-        require_once BASE_PATH . '/controllers/' . $className .'.php';
-        $className = '\Controllers\\'.$className;
-        
-        /** @var ControllerCore */  
-        $controller = new $className();
-        $controller->setName($name);
-        $controller->addCSS('style');
-        $controller->addJS('https://code.jquery.com/jquery-3.7.1.min.js');
-        return $controller;
+
+        // On récupère le premier controller qui correspond au nom donné
+
+        foreach($controllerPathes as $moduleName => $path) {
+            $className =  ucfirst($name) .'Controller';
+            if(file_exists($path . $className . '.php')) {
+                require_once $path . $className .'.php';
+                $className = '\Controllers\\'.$className;
+                
+                /** @var ControllerCore */  
+                $controller = new $className();
+                $controller->setName($name);
+                $controller->addCSS('style');
+                $controller->addJS('https://code.jquery.com/jquery-3.7.1.min.js');
+                $controller->addJS('copy');
+                if ($isAdmin) {
+                    AdminControllerCore::configureController($controller);
+                }
+                return $controller;
+            }
+        }
+
+        return null;
     }
 
     public function setName($name): void
@@ -36,6 +60,10 @@ class ControllerCore{
 
     protected function addCSS($stylesheet): void
     {
+        if (str_starts_with($stylesheet, 'http')) {
+            $this->stylesheets[] = $stylesheet;
+            return;
+        }
         $this->stylesheets[] =  Router::generateUrl('app_media_css', ['path' => $stylesheet]);
     }
 
@@ -45,7 +73,7 @@ class ControllerCore{
             $this->scripts[] = $script;
             return;
         }
-        $this->scripts[] = $_ENV["PROJECT_ROOT"] . 'script/'.$script.'.js';
+        $this->scripts[] = Router::generateUrl('app_media_script', ['path' => $script]);
     }
 
     protected function setTitle($title): void
@@ -81,8 +109,6 @@ class ControllerCore{
     protected function setMenuLinks(): array
     {
         return [
-            'Présentation' => Router::generateUrl(name: 'app_presentation'), // Présentation de HAM ainsi que de l'équipe
-            'Jeux & Histoires' => Router::generateUrl('app_jeux_histoires'), // Présentation des jeux et des histoires (projets)
         ];
     }
 
@@ -107,7 +133,6 @@ class ControllerCore{
     protected function setFooterLinks(): array
     {
         $links = [
-            'Site réalisé par Infelix Commentator' => Router::generateUrl('app_InfelixCommentator'),
         ];
         return array_merge($links, $this->getLuckyLink());
     }
@@ -124,18 +149,22 @@ class ControllerCore{
         ];
     }
 
-    protected function trans(string $value, string $domain = 'base'): string
+    protected function trans(string $value, ?string $domain = null): string
     {
+        if ($domain === null) {
+            $domain = $this->name;
+        }
         return Lang::trans($value, $domain);
     }
 
     protected function renderTemplate($variables = []): void
     {
-        // $this->addJS('copy');
-
         $siteRoot = $_ENV["PROJECT_ROOT"];
         $templatesRoot = BASE_PATH.'/templates/';
         $stylesheets = $this->stylesheets;
+        
+        $this->addJS('custom');
+
         $scripts = $this->scripts;
         $title = $this->title;
 
@@ -164,6 +193,11 @@ class ControllerCore{
 
         $bodyClass = $this->getBodyClass();
 
+        $nofooter = false;
+
+        foreach($this->extraVariables as $varName => $varValue){
+            $$varName = $varValue;
+        }
         foreach($variables as $varName => $varValue){
             $$varName = $varValue;
         }
@@ -190,5 +224,15 @@ class ControllerCore{
     protected function getBaseTemplate(): string
     {
         return 'base.php';
+    }
+
+    public function __construct()
+    {
+    }
+
+    protected function addExtraVariables(array $variables): bool
+    {
+        $this->extraVariables = array_merge($this->extraVariables, $variables);
+        return true;
     }
 }

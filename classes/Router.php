@@ -3,15 +3,16 @@
 namespace Classes;
 
 use Classes\Collections\ObjectCollection;
-use Repositories\Configuration;
-use Exceptions\RouteException;
 use Enum\LangEnum;
+use Exceptions\RouteException;
+use Repositories\Configuration;
+use Repositories\PageRepository;
 use Services\AdminService;
 
 class Router {
 
     /** @var ObjectCollection<Route> */
-    private static ObjectCollection $routes;
+    public static ObjectCollection $routes;
 
     /** @var string */
     public static string $adminPrefix;
@@ -24,7 +25,6 @@ class Router {
         self::$adminPrefix = 'admin';
         self::$useLangSystem = Configuration::get('useLangInUrl') === '1';
         $this->getRoute();
-
     }
 
     /**
@@ -32,7 +32,7 @@ class Router {
      * @param string $path
      * @return bool
      */
-    private function setLang(string &$path): bool {
+    public static function setLang(string &$path): bool {
         if(!self::$useLangSystem) {
             if(!isset($_SESSION['lang']) || !is_null($_SESSION['lang']) ) {
                 $_SESSION['lang'] = null;
@@ -41,7 +41,6 @@ class Router {
         }
         preg_match('/(\/('.implode('|', LangEnum::getCodes()).')).*\//', $path, $matches );
         if(!empty($matches)) {
-            // dd($matches);
             $_SESSION['lang'] = $matches[2];
             $path = str_replace($matches[1], '', $path);
             return true;
@@ -63,7 +62,12 @@ class Router {
     }
 
     public function addRoute(string $path, string $method, string $controller, string $name) {
-        self::$routes->add(new Route($path, $method, $controller, $name, $this->getRouteParams($path)));
+        $isActive = true;
+        $oPage = PageRepository::findByAppName($name);
+        if($oPage && $oPage->isActive() === false) {
+            $isActive = false;
+        }
+        self::$routes->add(new Route($path, $method, $controller, $name, $this->getRouteParams($path), $isActive));
     }
 
     /**
@@ -104,7 +108,7 @@ class Router {
             $controller->maintenance();
             return;
         }
-        
+
         $this->getRequestResult($path);
 
         return;
@@ -154,11 +158,9 @@ class Router {
         $path = $routes->get(0)->getPath();
         if($params != []) {
             foreach($params as $key => $value) {
-                $valueSplited = explode('/', $value);
-                foreach($valueSplited as $index => $part) {
-                    $valueSplited[$index] = urlencode($part);
+                if(!is_scalar($value)) {
+                    throw new RouteException("Route parameter must be a scalar value. Route: $name, Key: $key, Value: " . print_r($value, true));
                 }
-                $value = implode('/', $valueSplited);
                 $path = str_replace('{' . $key . '}', $value, $path);
             }
         }
@@ -166,6 +168,7 @@ class Router {
         if(str_starts_with($path, '/' . self::$adminPrefix)) {
             $path = str_replace('/' . self::$adminPrefix , ADMIN_INDEX_PATH, $path);
         }
+
         $realPath = str_replace('//', '/', $_ENV["PROJECT_ROOT"] . $_SESSION['lang'] . $path);
 
         return $realPath; 
@@ -179,7 +182,7 @@ class Router {
     private function getRouteByPath(string $path, array &$params) : ObjectCollection
     {
         $filtered = self::$routes->filter(function($route) use ($path) {
-            return $route->getPath() === $path;
+            return $route->getPath() === $path && (!$route->isActive && AdminService::isAdminLogged($_SESSION) || $route->isActive);
         });
         if($filtered->isEmpty()) {
             foreach(self::$routes->getAll() as $route) {
@@ -187,12 +190,17 @@ class Router {
                 // dump($route->toArray());
                 $routeParams = $route->getParams();
                 if(!empty($routeParams)) {
-                    $regex = '/'.preg_quote($route->getPath(), '/').'/';
+                    $regex = preg_quote($route->getPath(), '/');
                     foreach($routeParams as $arg) {
                         $regex = str_replace('\{' . $arg . '\}', '(.*)', $regex);
                     }
+                    $regex = '/^' . $regex . '$/';
                     $newParams = [];
                     if(preg_match( $regex, $path, $newParams) == 1 && !empty($newParams)) {
+                        
+                        if(!(!$route->isActive && AdminService::isAdminLogged($_SESSION) || $route->isActive)) {
+                            continue;
+                        }
                         array_shift($newParams);
                         foreach($routeParams as $index => $argName) {
                             if(!array_key_exists($index, $newParams)) {
@@ -205,7 +213,25 @@ class Router {
                 }
             }
         }
+        if($filtered->count() > 1) {
+            $moreDetailedRoute = $this->getMoreDetailedRoute($filtered);
+            if(!is_null($moreDetailedRoute)) {
+                $filtered = new ObjectCollection(Route::class);
+                $filtered->add($moreDetailedRoute);
+            }
+        }
         return $filtered;
+    }
+
+    private function getMoreDetailedRoute(ObjectCollection $routes): ?Route
+    {
+        $filtered = $routes->filter(function($route) {
+            return !empty($route->getParams());
+        });
+        $filtered = $filtered->sort(function($a, $b) {
+            return count($b->getParams()) <=> count($a->getParams());
+        });
+        return $filtered->isEmpty() ? null : $filtered->first();
     }
 
     public static function redirect(string $appName, array $params = []): never {
@@ -246,19 +272,20 @@ class Router {
         }
         $path = $prefixToAdd . $path;
 
-        $this->getRequestResult($path);
+        $this->getRequestResult($path, true);
         return true;
     }
 
-    private function getRequestResult(string $path): void {
+    private function getRequestResult(string $path, bool $isAdmin = false): void {
         $params = [];
-        $redirectLang = !$this->setLang($path);
+        $redirectLang = !self::setLang($path);
         $filtered = $this->getRouteByPath($path, $params);
-
         $controller = ControllerCore::getInstanceByName("NotFound");
         $function = "notFound";
+        
         if (!$filtered->isEmpty()) {
             if($filtered->count() > 1) {
+                dump($filtered->toArray());
                 throw new RouteException("Multiple routes found for path: $path");
             }
             /**  @var Route $route */
@@ -267,7 +294,7 @@ class Router {
                 self::redirect($route->getAppName(), $params);
                 return;
             }
-            $controller = ControllerCore::getInstanceByName($route->getController());
+            $controller = ControllerCore::getInstanceByName($route->getController(), $isAdmin);
             if(is_null($controller)) {
                 throw new RouteException("Controller not found: " . $route->getController());
             }
@@ -277,7 +304,6 @@ class Router {
         if(!method_exists($controller, $function)) {
             throw new RouteException('Controller ('.$controller::class.') function failed: '.$function);
         }
-        // dd($path, $params);
         $controller->$function(...$params);
         return;
     }
