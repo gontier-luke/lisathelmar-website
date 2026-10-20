@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Settings>
+    <Module>
+        <Name>lisathelmar</Name>
+        <Label>Lisathelmar</Label>
+        <Version>Alpha 1.0.0</Version>
+        <Description>Module multifonctionnel pour le projet portofolio et commissions de Lisathelmar.</Description>
+        <Author>Infelix Commentator</Author>
+    </Module>
+</Settings>

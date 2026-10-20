@@ -1,12 +1,7 @@
 <?php
 
-$settings = [
-    'name' => 'lisathelmar',
-    'label' => 'Module de Lisathelmar',
-    'description' => 'Le module spécifique du site de lisathelmar',
-    'version' => '1.0.0',
-    'author' => 'InfelixCommentator',
-    'requiredModules' => [],
-    'created_at' => '04-06-2026',
-    'active' => true
-];
+$settings = parseXmlFile(BASE_PATH . 'modules/lisathelmar/settings.xml');
+$initPath = DIRNAME(__FILE__) . '/init.php';
+if(file_exists($initPath)) {
+    require_once $initPath;
+}   

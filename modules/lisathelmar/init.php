@@ -1,23 +1,38 @@
 <?php
 
-$enums = glob(BASE_PATH . 'modules/lisathelmar/enums/*.php');
-foreach ($enums as $enum) {
-    require_once $enum;
-}
-$entities = glob(BASE_PATH . 'modules/lisathelmar/entities/*.php');
-foreach ($entities as $entity) {
-    require_once $entity;
-}
-$models = glob(BASE_PATH . 'modules/lisathelmar/models/*.php');
-foreach ($models as $model) {
-    require_once $model;
-}
-$services = glob(BASE_PATH . 'modules/lisathelmar/services/*.php');
-foreach ($services as $service) {
-    require_once $service;
+$moduleRoot = __DIR__ . '/';
+
+foreach(glob($moduleRoot . 'enum/*.php') as $fileName){
+    if (!str_contains($fileName,'index.php')) {
+        require_once $fileName;
+    }
 }
 
-$controllers = glob(BASE_PATH . 'modules/lisathelmar/controllers/*.php');
-foreach ($controllers as $controller) {
-    require_once $controller;
+foreach(glob($moduleRoot . 'models/*.php') as $fileName){
+    if (!str_contains($fileName,'index.php')) {
+        require_once $fileName;
+    }
+}
+foreach(glob($moduleRoot . 'entities/*.php') as $fileName){
+    if (!str_contains($fileName,'index.php')) {
+        require_once $fileName;
+    }
+}
+
+foreach(glob($moduleRoot . 'repositories/*.php') as $fileName){
+    if (!str_contains($fileName,'index.php')) {
+        require_once $fileName;
+    }
+}
+
+foreach(glob($moduleRoot . 'services/*.php') as $fileName){
+    if (!str_contains($fileName,'index.php')) {
+        require_once $fileName;
+    }
+}
+
+foreach(glob($moduleRoot . 'controllers/*.php') as $fileName){
+    if (!str_contains($fileName,'index.php')) {
+        require_once $fileName;
+    }
 }
