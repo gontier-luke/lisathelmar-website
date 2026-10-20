@@ -1,4 +1,21 @@
+@font-face {
+    font-family: 'Wremena';
+    src: url('/media/font/Wremena/Wremena_Regular.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'Wremena';
+    src: url('/media/font/Wremena/Wremena_Bold.woff') format('woff');
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: 'Wremena';
+    src: url('/media/font/Wremena/Wremena_Light.woff') format('woff');
+    font-weight: 300;
+}
+
 :root, :host {
-    --font-primary: 'Bree Serif', serif;
+    --font-primary: 'Wremena', serif;
     --font-color: #fefefe;
 }

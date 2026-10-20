@@ -7,7 +7,7 @@
 @import "./slider.css" layer(components);
 @import "./footer.css" layer(base);
 @import "./index.css" layer(base);
-@import "./tree.css" layer(base);
+@import "./admin.css" layer(base);
 
 @source '../../templates/';
 @source '../../controllers/';

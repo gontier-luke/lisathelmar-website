@@ -1,5 +1,5 @@
 .footer{
-    @apply bg-black/10 justify-self-end container w-full min-w-full;
+    @apply justify-self-end container w-full min-w-full;
 
     .footer-content{
         @apply flex justify-between flex-col items-center py-4 mx-4;
@@ -24,20 +24,25 @@
         }
 
         .footer-content__socials{
-            @apply flex gap-4;
+            @apply grid grid-cols-3 gap-4 flex-row items-center pl-0;
 
             li{
-                @apply inline max-w-[2.9rem] cursor-pointer;
+                @apply max-w-[2.9rem] cursor-pointer;
+
+                list-style-type: none;
 
                 a{
                     text-decoration: none;
                     @apply text-(--font-color) text-2xl w-full;
                 }
 
-                img{
-                    @apply max-w-full h-auto;
+                img,svg,.copy-js{
+                    @apply max-w-full h-auto fill-(--font-color) w-[inherit];
                 }
             }
+        }
+        .footer-content__copyright{
+            @apply text-(--font-color) text-lg;
         }
     }
 
